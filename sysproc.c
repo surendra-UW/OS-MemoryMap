@@ -6,6 +6,9 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "mmap.h"
+#include "stddef.h"
+#include "sys/types.h"
 
 int
 sys_fork(void)
@@ -88,4 +91,28 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+int sys_mmap(void) {
+  void *addr;
+  size_t length;
+  int prot, flags, fd;
+  off_t offset;
+
+  if(argptr(0, (void *)&addr, sizeof(void *)) < 0) {
+    return -1;
+  }
+
+  if(argint(1, (int *)&length) < 0) 
+    return -1;
+  if(argint(2, &prot) < 0)
+    return -1;
+  if(argint(3, &flags) < 0)
+    return -1;
+  if(argint(4, &fd) < 0)
+    return -1;
+  if(argint(5, (int *)&offset) < 0)
+    return -1;
+
+  return mmap(addr, length, prot, flags, fd, offset);
 }

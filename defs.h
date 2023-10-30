@@ -1,3 +1,5 @@
+#include "stddef.h"
+#include "sys/types.h"
 struct buf;
 struct context;
 struct file;
@@ -188,3 +190,6 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+//mem.c
+int mmap(void *, size_t, int, int, int, off_t);
