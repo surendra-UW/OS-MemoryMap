@@ -94,15 +94,14 @@ sys_uptime(void)
 }
 
 int sys_mmap(void) {
-  void *addr;
+  int addr;
   size_t length;
   int prot, flags, fd;
   off_t offset;
 
-  if(argptr(0, (void *)&addr, sizeof(void *)) < 0) {
+  if(argint(0,&addr) < 0) {
     return -1;
   }
-
   if(argint(1, (int *)&length) < 0) 
     return -1;
   if(argint(2, &prot) < 0)
@@ -114,5 +113,5 @@ int sys_mmap(void) {
   if(argint(5, (int *)&offset) < 0)
     return -1;
 
-  return mmap(addr, length, prot, flags, fd, offset);
+  return mmap((void *)addr, length, prot, flags, fd, offset);
 }
