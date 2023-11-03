@@ -194,7 +194,7 @@ pte_t*          walkpgdir(pde_t *, const void *, int);
 
 
 // mem.c
-int check_for_add(uint, struct proc *, int);
-int find_index_to_insert_mmap(uint, struct proc *, int);
 int mmap(void *, int, int, int, int, int );
 int munmap(void *, int);
+
+
