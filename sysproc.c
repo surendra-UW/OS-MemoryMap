@@ -96,7 +96,7 @@ int sys_mmap(void) {
   int length;
   int prot, flags, fd;
   int offset;
-
+  struct file *f = (void *) 0;
   if(argint(0,&addr) < 0) {
     return -1;
   }
@@ -111,7 +111,16 @@ int sys_mmap(void) {
   if(argint(5, &offset) < 0)
     return -1;
 
-  return mmap((void *)addr, length, prot, flags, fd, offset);
+  int val = argfd(4, &fd, &f);
+  if (val < 0) {
+    if (!(flags & MAP_ANONYMOUS)) {
+      return -1;
+    }
+  } else {
+    filedup(f);
+  }
+
+  return mmap((void *)addr, length, prot, flags, f, offset);
 }
 
 int sys_munmap(void) {

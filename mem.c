@@ -4,7 +4,12 @@
 #include "mmu.h"
 #include "proc.h"
 #include "memlayout.h"
+#include "fs.h"
+#include "spinlock.h"
+#include "sleeplock.h"
+#include "file.h"
 #include "mmap.h"
+
 
 
 // #define -1 ((void *)-1)
@@ -14,8 +19,9 @@ int find_addr(struct proc *p, int length);
 void right_shift(struct proc *p, int index);
 int mappages(pde_t *, void *, uint, uint, int);
 void* memmove(void*, const void*, uint);
+int read_from_file(struct file *f, char* va, int offset, int length);
 
-int mmap(void *addr, int length, int prot, int flags, int fd, int offset)
+int mmap(void *addr, int length, int prot, int flags, struct file* f, int offset)
 {
 
     struct proc *p = myproc();
@@ -57,12 +63,28 @@ int mmap(void *addr, int length, int prot, int flags, int fd, int offset)
     int ret = mappages(p->pgdir, (void *) p->vm_mappings[index].addr, p->vm_mappings[index].length, V2P(page), prot|PTE_U);
     if(ret < 0) return -1;
 
+    if(!(flags & MAP_ANONYMOUS))
+    {
+        // filedup(p->ofile[fd]);
+        if(read_from_file(f,(char *)p->vm_mappings[index].addr,offset,length)<0)
+        return -1;
+    }
      p->vm_mappings[index].valid = 1;
+     p->vm_mappings[index].f = f;
     p->vm_mappings[index].flags = flags;
     p->vm_mappings[index].prot = prot;
+    p->vm_mappings[index].offset = offset;
     p->active_vm_maps++;
     return (int)p->vm_mappings[index].addr;
 }
+
+int read_from_file(struct file *f, char* va, int offset, int length) {
+  ilock(f->ip);
+  int n = readi(f->ip, va, offset, length);
+  iunlock(f->ip);
+  return n;
+} 
+
 
 
 int find_addr(struct proc *p, int length)
@@ -131,6 +153,23 @@ int munmap(void *addr, int length)
     }
     if(i==p->active_vm_maps)
     return -1;
+    if(!(p->vm_mappings[i].flags & MAP_ANONYMOUS)&&p->vm_mappings[i].flags&MAP_SHARED)
+    {
+        cprintf("i:%d\n",i);
+        cprintf("\tBuffer to write: %s\n",p->vm_mappings[i].addr);
+        cprintf("addr:%d\n",p->vm_mappings[i].addr);
+        cprintf("offset:%d\n",p->vm_mappings[i].offset);
+        cprintf("length:%d\n",p->vm_mappings[i].length);
+        if (filewrite(p->vm_mappings[i].f, (char *)p->vm_mappings[i].addr,p->vm_mappings[i].length) < 0) {
+        return -1;
+        }
+        // ilock(p->vm_mappings[i].f->ip);
+        // int n = writei(p->vm_mappings[i].f->ip, (char *)p->vm_mappings[i].addr, p->vm_mappings[i].offset,p->vm_mappings[i].length);
+        // iunlock(p->vm_mappings[i].f->ip);
+        // if(n<0)
+        // return -1;
+    
+    }
     int j=0;
     for(;j<rounded_len;j+=PGSIZE)
     {
@@ -149,5 +188,3 @@ int munmap(void *addr, int length)
 
 
 }
-
-
