@@ -21,9 +21,10 @@ int mmap(void *addr, int length, int prot, int flags, int fd, int offset)
     struct proc *p = myproc();
     int index;
     if(p->active_vm_maps == 32) return -1;
-    if((uint)addr < MMAP_BASE) return -1;
+    
     if (flags & MAP_FIXED)
     {
+        if((uint)addr < MMAP_BASE) return -1;
         if(addr == (void *)0 || (uint)addr >= KERNBASE) {
             return -1;
         }
@@ -38,14 +39,7 @@ int mmap(void *addr, int length, int prot, int flags, int fd, int offset)
         p->vm_mappings[index].length = length;
        
         
-        char* page = kalloc();
-        //kernel cannot allocate page
-        if(!page) {
-            return -1;
-        }
-        memset(page, 0, PGSIZE);
-        int ret = mappages(p->pgdir, (void *) rounded_addr, length, V2P(page), prot|PTE_U);
-        if(ret < 0) return -1;
+        
         
     }
     else
@@ -54,6 +48,15 @@ int mmap(void *addr, int length, int prot, int flags, int fd, int offset)
         if(index < 0) return -1;
 
     }
+    char* page = kalloc();
+    
+    if(!page) {
+        return -1;
+    }
+    memset(page, 0, PGSIZE);
+    int ret = mappages(p->pgdir, (void *) p->vm_mappings[index].addr, p->vm_mappings[index].length, V2P(page), prot|PTE_U);
+    if(ret < 0) return -1;
+
      p->vm_mappings[index].valid = 1;
     p->vm_mappings[index].flags = flags;
     p->vm_mappings[index].prot = prot;
