@@ -77,6 +77,10 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
+  // case 14:
+  //   cprintf("Segmentation Fault\n");
+  //   myproc()->killed = 1;
+  //   break;
 
   //PAGEBREAK: 13
   default:

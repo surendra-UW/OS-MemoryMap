@@ -40,7 +40,7 @@ struct proc_mapping
     int length;
     int prot;
     int flags;
-    int fd;
+    struct file* f;
     int offset;
     int valid;
 };

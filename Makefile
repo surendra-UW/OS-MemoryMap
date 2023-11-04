@@ -183,7 +183,8 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_test_3\
+	_test_6\
+	_test_7\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
