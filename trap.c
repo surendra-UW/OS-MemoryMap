@@ -7,6 +7,7 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "mmap.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
@@ -14,6 +15,7 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
+int check_for_mapgrowsup(uint addr);
 void
 tvinit(void)
 {
@@ -77,10 +79,15 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
-  // case 14:
-  //   cprintf("Segmentation Fault\n");
-  //   myproc()->killed = 1;
-  //   break;
+  case 14:
+    int index = check_for_mapgrowsup(rcr2());
+    if(index != -1){
+      int map_result = map_page_to_mapgrowsup(index);
+      if(map_result != -1) break;
+    }
+    cprintf("Segmentation Fault 0x%x\n", rcr2());
+    myproc()->killed = 1;
+    break;
 
   //PAGEBREAK: 13
   default:
@@ -113,4 +120,19 @@ trap(struct trapframe *tf)
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
+}
+
+int check_for_mapgrowsup(uint addr) {
+  struct proc *p = myproc();
+  uint rounded_Add = PGROUNDDOWN(addr);
+  for(int i=0;i<p->active_vm_maps;i++) {
+    if(p->vm_mappings[i].valid != 1) continue;
+    if(!(p->vm_mappings[i].flags & MAP_GROWSUP)) continue;
+    uint end_add = p->vm_mappings[i].addr + PGROUNDUP(p->vm_mappings[i].length);
+    if(end_add == rounded_Add) {
+      if(i == p->active_vm_maps-1 || p->vm_mappings[i+1].addr - end_add >= 2*PGSIZE) return i;
+      else return -1;
+    }
+  }
+  return -1;
 }

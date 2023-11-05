@@ -196,6 +196,9 @@ pte_t*          walkpgdir(pde_t *, const void *, int);
 // mem.c
 int mmap(void *, int, int, int, struct file*, int );
 int munmap(void *, int);
+int map_page_to_mapgrowsup(int );
+void unmap_for_exit();
+int copy_vmmaps_fork(struct proc *);
 
 
 int argfd(int, int *, struct file **);

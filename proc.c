@@ -199,7 +199,12 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-
+  if(copy_vmmaps_fork(np) < 0) {
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  }
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -242,6 +247,8 @@ exit(void)
     }
   }
 
+  // unmap all the mappings
+  unmap_for_exit();
   begin_op();
   iput(curproc->cwd);
   end_op();
