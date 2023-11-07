@@ -145,20 +145,10 @@ int munmap(void *addr, int length)
     return -1;
     if(!(p->vm_mappings[i].flags & MAP_ANONYMOUS)&&p->vm_mappings[i].flags&MAP_SHARED)
     {
-        // cprintf("i:%d\n",i);
-        // cprintf("\tBuffer to write: %s\n",p->vm_mappings[i].addr);
-        // cprintf("addr:%d\n",p->vm_mappings[i].addr);
-        // cprintf("offset:%d\n",p->vm_mappings[i].offset);
-        // cprintf("length:%d\n",p->vm_mappings[i].length);
+        p->vm_mappings[i].f->off = p->vm_mappings[i].offset;
         if (filewrite(p->vm_mappings[i].f, (char *)p->vm_mappings[i].addr,p->vm_mappings[i].length) < 0) {
         return -1;
         }
-        // ilock(p->vm_mappings[i].f->ip);
-        // int n = writei(p->vm_mappings[i].f->ip, (char *)p->vm_mappings[i].addr, p->vm_mappings[i].offset,p->vm_mappings[i].length);
-        // iunlock(p->vm_mappings[i].f->ip);
-        // if(n<0)
-        // return -1;
-    
     }
     int j=0;
     for(;j<rounded_len;j+=PGSIZE)
@@ -175,8 +165,6 @@ int munmap(void *addr, int length)
     }
     p->active_vm_maps--;
     return 0;
-
-
 }
 
 int map_page_to_mapgrowsup(int index)
@@ -220,15 +208,32 @@ int copy_vmmaps_fork(struct proc *np)
 
         if (np->vm_mappings[i].flags & MAP_PRIVATE)
         {
-            char *page = kalloc();
 
-            if (!page)
+            int start;
+            int end_add = np->vm_mappings[i].addr + PGROUNDUP(np->vm_mappings[i].length);
+
+            for (start = np->vm_mappings[i].addr; start < end_add; start += PGSIZE)
             {
-                return -1;
-            }
+                pte_t *pte = walkpgdir(p->pgdir, (char *)(start), 0);
+                uint pa = PTE_ADDR(*pte);
 
-            memset(page, 0, PGSIZE);
-            return mappages(np->pgdir, (void *)np->vm_mappings[i].addr, np->vm_mappings[i].length, V2P(page), np->vm_mappings[i].prot | PTE_U);
+                char *page = kalloc();
+
+                if (!page)
+                {
+                    return -1;
+                }
+
+                // memset(page, 0, PGSIZE);
+
+                memmove(page, (char*)P2V(pa), PGSIZE);
+                // char *v = P2V(pa);
+                if(mappages(np->pgdir, (void *) np->vm_mappings[i].addr, PGSIZE, V2P(page), np->vm_mappings[i].prot | PTE_U) < 0) {
+                    return -1;
+                }
+            }
+            
+            // return mappages(np->pgdir, (void *)np->vm_mappings[i].addr, np->vm_mappings[i].length, V2P(page), np->vm_mappings[i].prot | PTE_U);
         }
         else if (np->vm_mappings[i].flags & MAP_SHARED)
         {
