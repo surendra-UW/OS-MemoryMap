@@ -3,6 +3,9 @@
         "array": "c",
         "string_view": "c",
         "initializer_list": "c",
-        "utility": "c"
+        "utility": "c",
+        "proc.h": "c",
+        "param.h": "c",
+        "spinlock.h": "c"
     }
 }

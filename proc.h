@@ -43,7 +43,7 @@ struct proc_mapping
     struct file* f;
     int offset;
     int valid;
-    int reference;               // count of child processes
+    int is_child_process;               // count of child processes
 
 };
 
